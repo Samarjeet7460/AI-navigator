@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import mc from "../assets/microphone.png";
 import arrow from "../assets/arrow.png";
 import listen from "../assets/listening.png";
@@ -6,14 +6,10 @@ import { gemini } from "../gemini";
 
 const Input = () => {
   const [text, setText] = useState("");
-  const [messages, setMessages] = useState([]); // Store both user and AI messages
+  const [latestUserMessage, setLatestUserMessage] = useState(null);
+  const [latestAIMessage, setLatestAIMessage] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
 
   const handleChange = (e) => {
     setText(e.target.value);
@@ -46,24 +42,24 @@ const Input = () => {
   };
 
   const handleKeyDown = (e) => {
-    if(e.key === "Enter"){
-      handleSubmit()
+    if (e.key === "Enter") {
+      handleSubmit();
     }
-  }
+  };
 
   const handleSubmit = async () => {
     if (!text.trim()) return;
 
-    // Add user input to messages
-    setMessages((prev) => [...prev, { text, sender: "user" }]);
+    // Store only the latest user input
+    setLatestUserMessage(text);
     setText("");
     setLoading(true);
 
     try {
       const response = await gemini(text);
-      setMessages((prev) => [...prev, { text: response, sender: "ai" }]);
+      setLatestAIMessage(response);
     } catch (error) {
-      setMessages((prev) => [...prev, { text: "Failed to generate a response. Please try again.", sender: "ai" }]);
+      setLatestAIMessage("Failed to generate a response. Please try again.");
       console.error("Gemini API error:", error);
     }
 
@@ -74,18 +70,17 @@ const Input = () => {
     <div className="flex flex-col flex-grow justify-between p-4 bg-white text-black">
       {/* Chat Messages */}
       <div className="flex-1 overflow-auto space-y-3 pb-4 mt-4">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`p-3 rounded-lg w-fit max-w-[70%] ${
-              msg.sender === "user" ? "bg-gray-200 self-end" : "bg-green-100 self-start"
-            }`}
-          >
-            {msg.text}
+        {latestUserMessage && (
+          <div className="p-3 rounded-lg w-fit max-w-[70%] bg-gray-200 self-end">
+            {latestUserMessage}
           </div>
-        ))}
+        )}
         {loading && <div className="p-4 bg-blue-100 text-blue-700 rounded-lg mt-2">Generating response...</div>}
-        <div ref={messagesEndRef}></div>
+        {latestAIMessage && (
+          <div className="p-3 rounded-lg w-fit max-w-[70%] bg-green-100 self-start">
+            {latestAIMessage}
+          </div>
+        )}
       </div>
 
       {/* Input Box */}
